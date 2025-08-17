@@ -30,14 +30,32 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_chat_id = row[0]
+    question_text = row[1]
     admin_user = update.effective_user
 
     try:
+        user_answer = (
+            "💬 Ответ на твой вопрос:\n\n"
+            f"{question_text}\n\n"
+            f"💡 Ответ:\n{msg.text}"
+        )
+
         await context.bot.send_message(
             chat_id=user_chat_id,
-            text=f"💬 Ответ от команды:\n\n{msg.text}"
+            text=user_answer
         )
+
         await mark_answered(qid)
+
+        try:
+            await context.bot.unpin_chat_message(
+                chat_id=ADMINS_CHAT_ID,
+                message_id=msg.reply_to_message.message_id
+            )
+            logger.info(f"Вопрос ID:{qid} откреплён после ответа.")
+        except Exception as e:
+            logger.error(f"Не удалось открепить вопрос ID:{qid}: {e}")
+
         await msg.reply_text(f"✅ Ответ отправлен пользователю (вопрос ID:{qid}).")
 
         logger.info(

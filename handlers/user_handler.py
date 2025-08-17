@@ -24,7 +24,8 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     qid = short_id()
-    await save_mapping(qid, chat.id, msg.message_id)
+    question_text = text
+    await save_mapping(qid, chat.id, msg.message_id, question_text)
 
     user = update.effective_user
     if user.username:
@@ -44,6 +45,17 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="👉 Ответь на это сообщение реплаем, чтобы ответить пользователю.",
             reply_to_message_id=sent.message_id,
         )
+
+        try:
+            await context.bot.pin_chat_message(
+                chat_id=ADMINS_CHAT_ID,
+                message_id=sent.message_id,
+                disable_notification=True
+            )
+            logger.info(f"Вопрос {ID_PREFIX}{qid} закреплён в чате админов.")
+        except Exception as e:
+            logger.error(f"Не удалось закрепить вопрос {ID_PREFIX}{qid}: {e}")
+
         logger.info(f"Вопрос {ID_PREFIX}{qid} отправлен в чат админов.")
     except Exception as e:
         await msg.reply_text("Не удалось отправить вопрос. Попробуй позже.")

@@ -12,6 +12,7 @@ async def init_db():
                 qid TEXT PRIMARY KEY,
                 user_chat_id INTEGER NOT NULL,
                 user_message_id INTEGER,
+                question_text TEXT,   -- <-- новая колонка
                 answered INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -19,11 +20,11 @@ async def init_db():
         await db.commit()
 
 
-async def save_mapping(qid: str, user_chat_id: int, user_message_id: Optional[int]):
+async def save_mapping(qid: str, user_chat_id: int, user_message_id: Optional[int], question_text: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO qmap(qid, user_chat_id, user_message_id) VALUES (?, ?, ?)",
-            (qid, user_chat_id, user_message_id),
+            "INSERT INTO qmap(qid, user_chat_id, user_message_id, question_text) VALUES (?, ?, ?, ?)",
+            (qid, user_chat_id, user_message_id, question_text),
         )
         await db.commit()
 
@@ -31,7 +32,8 @@ async def save_mapping(qid: str, user_chat_id: int, user_message_id: Optional[in
 async def get_user_by_qid(qid: str):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
-            "SELECT user_chat_id FROM qmap WHERE qid=? AND answered=0", (qid,)
+            "SELECT user_chat_id, question_text FROM qmap WHERE qid=? AND answered=0", (
+                qid,)
         ) as cur:
             return await cur.fetchone()
 
