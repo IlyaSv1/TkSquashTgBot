@@ -1,6 +1,7 @@
 import re
 from telegram import Update, Message, Chat
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode
 from config import ADMINS_CHAT_ID
 from database.db import save_mapping
 from utils.helpers import short_id
@@ -35,15 +36,23 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         user_label = f"id:{user.id}"
 
-    header = f"❓ Новый вопрос от {user_label}\n\n{text}\n\n(ID:{qid})"
+    # Заголовок вопроса
+    header = f"❓ <b>Новый вопрос</b> от {user_label}\n\n{text}\n\n(ID:{qid})"
     logger.info(f"Новый вопрос {ID_PREFIX}{qid} от {user_label}: {text}")
 
     try:
-        sent = await context.bot.send_message(chat_id=ADMINS_CHAT_ID, text=header)
+        # Отправляем вопрос
+        sent = await context.bot.send_message(
+            chat_id=ADMINS_CHAT_ID,
+            text=header,
+            parse_mode=ParseMode.HTML
+        )
+        # Сообщение-инструкция
         await context.bot.send_message(
             chat_id=ADMINS_CHAT_ID,
-            text="👉 Ответь на это сообщение реплаем, чтобы ответить пользователю.",
+            text="👉 <b>Ответь на это сообщение реплаем, чтобы ответить пользователю</b>.",
             reply_to_message_id=sent.message_id,
+            parse_mode=ParseMode.HTML
         )
 
         try:
@@ -60,7 +69,8 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await msg.reply_text("Не удалось отправить вопрос. Попробуй позже.")
         logger.error(
-            f"Ошибка при отправке вопроса {ID_PREFIX}{qid} в чат админов: {e}")
+            f"Ошибка при отправке вопроса {ID_PREFIX}{qid} в чат админов: {e}"
+        )
         return
 
     await msg.reply_text("Вопрос отправлен команде. Ответ придёт сюда.")

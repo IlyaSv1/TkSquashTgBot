@@ -1,6 +1,8 @@
 import re
+import html
 from telegram import Update, Chat
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode
 from config import ADMINS_CHAT_ID
 from database.db import get_user_by_qid, mark_answered
 from utils.logger import Logger
@@ -26,23 +28,24 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qid = match.group(1)
     row = await get_user_by_qid(qid)
     if not row:
-        await msg.reply_text("Не найден пользователь для этого вопроса (возможно уже отвечен).")
+        await msg.reply_text("Ваш ответ не отправлен (возможно на этот вопрос уже ответили).")
         return
 
-    user_chat_id = row[0]
-    question_text = row[1]
+    user_chat_id, question_text = row
     admin_user = update.effective_user
 
     try:
         user_answer = (
-            "💬 Ответ на твой вопрос:\n\n"
-            f"{question_text}\n\n"
-            f"💡 Ответ:\n{msg.text}"
+            "💬 <b>Твой вопрос:</b>\n\n"
+            f"{html.escape(question_text)}\n\n"
+            "💡 <b>Ответ:</b>\n\n"
+            f"{html.escape(msg.text)}"
         )
 
         await context.bot.send_message(
             chat_id=user_chat_id,
-            text=user_answer
+            text=user_answer,
+            parse_mode=ParseMode.HTML
         )
 
         await mark_answered(qid)
@@ -56,11 +59,9 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Не удалось открепить вопрос ID:{qid}: {e}")
 
-        await msg.reply_text(f"✅ Ответ отправлен пользователю (вопрос ID:{qid}).")
-
+        await msg.reply_text("✅ Ответ отправлен пользователю.")
         logger.info(
-            f"Админ {admin_user.username} "
-            f"ответил на вопрос ID:{qid}: \"{msg.text}\""
+            f"Админ {admin_user.username} ответил на вопрос ID:{qid}: \"{msg.text}\""
         )
 
     except Exception as e:
