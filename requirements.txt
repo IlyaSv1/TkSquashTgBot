@@ -1,2 +1,10 @@
 python-telegram-bot==20.3
 python-dotenv==1.0.0
+httpx~=0.24.0
+aiosqlite
+certifi
+idna
+sniffio
+h11
+anyio
+typing_extensions
