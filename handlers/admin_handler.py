@@ -6,6 +6,7 @@ from telegram.constants import ParseMode
 from config import ADMINS_CHAT_ID
 from database.db import get_user_by_qid, mark_answered
 from utils.logger import Logger
+from utils.user_formatter import format_user_for_log
 
 logger = Logger().get_logger()
 
@@ -28,11 +29,14 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qid = match.group(1)
     row = await get_user_by_qid(qid)
     if not row:
-        await msg.reply_text("Ваш ответ не отправлен (возможно на этот вопрос уже ответили).")
+        await msg.reply_text(
+            "Ваш ответ не отправлен (возможно, на этот вопрос уже ответили)."
+        )
         return
 
     user_chat_id, question_text = row
     admin_user = update.effective_user
+    admin_label = format_user_for_log(admin_user)
 
     try:
         user_answer = (
@@ -45,7 +49,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=user_chat_id,
             text=user_answer,
-            parse_mode=ParseMode.HTML
+            parse_mode=ParseMode.HTML,
         )
 
         await mark_answered(qid)
@@ -53,7 +57,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.unpin_chat_message(
                 chat_id=ADMINS_CHAT_ID,
-                message_id=msg.reply_to_message.message_id
+                message_id=msg.reply_to_message.message_id,
             )
             logger.info(f"Вопрос ID:{qid} откреплён после ответа.")
         except Exception as e:
@@ -61,7 +65,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await msg.reply_text("✅ Ответ отправлен пользователю.")
         logger.info(
-            f"Админ {admin_user.username} ответил на вопрос ID:{qid}: \"{msg.text}\""
+            f"Админ {admin_label} ответил на вопрос ID:{qid}: \"{msg.text}\""
         )
 
     except Exception as e:

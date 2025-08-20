@@ -1,6 +1,7 @@
 from telegram import Update, Chat
 from telegram.ext import ContextTypes
 from utils.logger import Logger
+from utils.user_formatter import format_user_for_log
 
 logger = Logger().get_logger()
 
@@ -12,7 +13,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Ответ придёт сюда!"
     )
     user = update.effective_user
-    logger.info(f"Пользователь {user.id} ({user.username}) вызвал /start.")
+    user_label = format_user_for_log(user)
+    logger.info(f"Пользователь {user_label} вызвал /start.")
 
 
 async def cmd_chatid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -21,5 +23,5 @@ async def cmd_chatid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"ID этого чата: `{chat.id}`", parse_mode="Markdown"
     )
     user = update.effective_user
-    logger.info(
-        f"Пользователь {user.id} ({user.username}) вызвал /chatid в чате {chat.id}.")
+    user_label = format_user_for_log(user)
+    logger.info(f"Пользователь {user_label} вызвал /chatid в чате {chat.id}.")
