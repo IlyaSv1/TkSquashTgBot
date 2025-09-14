@@ -38,11 +38,12 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     admin_user = update.effective_user
     admin_label = format_user_for_log(admin_user)
 
+    answer_content = msg.text or msg.caption or ""
     user_text = (
         "💬 <b>Твой вопрос:</b>\n\n"
         f"{html.escape(question_text)}\n\n"
         "💡 <b>Ответ:</b>\n\n"
-        f"{html.escape(msg.text) if msg.text else ''}"
+        f"{html.escape(answer_content)}"
     )
 
     try:
