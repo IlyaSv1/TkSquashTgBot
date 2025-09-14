@@ -21,34 +21,28 @@ def main():
     asyncio.run(init_db())
     logger.info("База данных инициализирована.")
 
-    # Создаём и устанавливаем loop вручную (для Python 3.12 / Windows)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Команды
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("chatid", cmd_chatid))
     logger.info("Команды зарегистрированы.")
 
-    # Сообщения пользователей
     app.add_handler(MessageHandler(
         filters.ChatType.PRIVATE & filters.TEXT, on_user_message
     ))
 
-    # Сообщения админов
     app.add_handler(MessageHandler(
         filters.ChatType.GROUPS & filters.TEXT, on_admin_reply
     ))
     logger.info("Обработчики сообщений зарегистрированы.")
 
-    # Глобальный обработчик ошибок
     app.add_error_handler(error_handler)
     logger.info("Глобальный обработчик ошибок подключен.")
 
     logger.info("Бот запущен. Ожидание сообщений…")
-    # Запускаем polling
     app.run_polling()
 
 
