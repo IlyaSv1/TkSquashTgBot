@@ -1,6 +1,7 @@
+# database/db.py
 import aiosqlite
 import os
-from typing import Optional, Tuple
+from typing import Optional
 
 DB_PATH = os.environ.get("BOT_DB_PATH", "qa_bot.sqlite3")
 
@@ -13,7 +14,9 @@ async def init_db():
                 user_chat_id INTEGER NOT NULL,
                 user_message_id INTEGER,
                 question_text TEXT,
-                answer_message_id INTEGER,   -- новое поле для ID ответа
+                question_file_id TEXT,
+                answer_message_id INTEGER,
+                answer_file_id TEXT,
                 answered INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -21,40 +24,37 @@ async def init_db():
         await db.commit()
 
 
-async def save_mapping(qid: str, user_chat_id: int, user_message_id: Optional[int], question_text: str):
+async def save_mapping(qid: str, user_chat_id: int, question_text: str, question_file_id: Optional[str] = None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO qmap(qid, user_chat_id, user_message_id, question_text) VALUES (?, ?, ?, ?)",
-            (qid, user_chat_id, user_message_id, question_text),
+            "INSERT INTO qmap(qid, user_chat_id, question_text, question_file_id) VALUES (?, ?, ?, ?)",
+            (qid, user_chat_id, question_text, question_file_id)
         )
         await db.commit()
 
 
-async def get_user_by_qid(qid: str, include_answered=False):
-    query = "SELECT user_chat_id, question_text, answer_message_id FROM qmap WHERE qid=?"
-    if not include_answered:
-        query += " AND answered=0"
+async def get_user_by_qid(qid: str, include_answered: bool = False):
     async with aiosqlite.connect(DB_PATH) as db:
+        query = "SELECT user_chat_id, question_text, answer_message_id, question_file_id FROM qmap WHERE qid=?"
+        if not include_answered:
+            query += " AND answered=0"
         async with db.execute(query, (qid,)) as cur:
             return await cur.fetchone()
 
 
-async def mark_answered(qid: str, answer_message_id: Optional[int] = None):
+async def mark_answered(qid: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        if answer_message_id:
-            await db.execute(
-                "UPDATE qmap SET answered=1, answer_message_id=? WHERE qid=?",
-                (answer_message_id, qid),
-            )
-        else:
-            await db.execute("UPDATE qmap SET answered=1 WHERE qid=?", (qid,))
+        await db.execute("UPDATE qmap SET answered=1 WHERE qid=?", (qid,))
         await db.commit()
 
 
 async def save_answer_message_id(qid: str, message_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE qmap SET answer_message_id=? WHERE qid=?",
-            (message_id, qid)
-        )
+        await db.execute("UPDATE qmap SET answer_message_id=? WHERE qid=?", (message_id, qid))
+        await db.commit()
+
+
+async def save_answer_file_id(qid: str, file_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE qmap SET answer_file_id=? WHERE qid=?", (file_id, qid))
         await db.commit()

@@ -31,11 +31,17 @@ def main():
     logger.info("Команды зарегистрированы.")
 
     app.add_handler(MessageHandler(
-        filters.ChatType.PRIVATE & filters.TEXT, on_user_message
+        (filters.TEXT | filters.PHOTO | filters.Document.ALL |
+         filters.VIDEO | filters.AUDIO | filters.VOICE)
+        & filters.ChatType.PRIVATE,
+        on_user_message
     ))
 
     app.add_handler(MessageHandler(
-        filters.ChatType.GROUPS & filters.TEXT, on_admin_reply
+        (filters.TEXT | filters.PHOTO | filters.Document.ALL |
+         filters.VIDEO | filters.AUDIO | filters.VOICE)
+        & filters.ChatType.GROUPS,
+        on_admin_reply
     ))
     logger.info("Обработчики сообщений зарегистрированы.")
 
