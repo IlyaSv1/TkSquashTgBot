@@ -35,7 +35,11 @@ async def save_mapping(qid: str, user_chat_id: int, question_text: str, question
 
 async def get_user_by_qid(qid: str, include_answered: bool = False):
     async with aiosqlite.connect(DB_PATH) as db:
-        query = "SELECT user_chat_id, question_text, answer_message_id, question_file_id FROM qmap WHERE qid=?"
+        query = """
+            SELECT user_chat_id, question_text, answer_message_id, question_file_id, answer_type
+            FROM qmap
+            WHERE qid=?
+        """
         if not include_answered:
             query += " AND answered=0"
         async with db.execute(query, (qid,)) as cur:
@@ -57,4 +61,13 @@ async def save_answer_message_id(qid: str, message_id: int):
 async def save_answer_file_id(qid: str, file_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE qmap SET answer_file_id=? WHERE qid=?", (file_id, qid))
+        await db.commit()
+
+
+async def save_answer_type(qid: str, answer_type: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE qmap SET answer_type=? WHERE qid=?",
+            (answer_type, qid)
+        )
         await db.commit()

@@ -1,4 +1,3 @@
-# user_handler.py
 from telegram import Update, Message
 from telegram.ext import ContextTypes, MessageHandler, filters
 from telegram.constants import ParseMode
@@ -17,7 +16,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     logger.info(f"Received message from {msg.chat.id} of type {msg.chat.type}")
 
-    # Проверяем приватный чат
     if msg.chat.type != msg.chat.PRIVATE:
         logger.info("Message ignored: not private chat")
         return
@@ -36,7 +34,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_id = None
     media_type = None
 
-    # Определяем file_id и тип медиа
     if msg.photo:
         file_id = msg.photo[-1].file_id
         media_type = "photo"
@@ -50,7 +47,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file_id = msg.audio.file_id
         media_type = "audio"
 
-    # Сохраняем вопрос в базе
     await save_mapping(qid, msg.chat.id, question_text, question_file_id=file_id)
 
     user_label_admin = format_user_for_admin(update.effective_user)
@@ -62,7 +58,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Новый вопрос {ID_PREFIX}{qid} от {user_label_log}: {question_text}")
 
     try:
-        # Отправка админам с медиа, если есть
         if media_type == "photo":
             sent = await context.bot.send_photo(
                 chat_id=ADMINS_CHAT_ID,
@@ -98,7 +93,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.HTML
             )
 
-        # Инструкция для админов
         await context.bot.send_message(
             chat_id=ADMINS_CHAT_ID,
             text="👉 <b>Ответь на это сообщение реплаем, чтобы ответить пользователю</b>.",
@@ -106,7 +100,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML,
         )
 
-        # Закрепляем вопрос
         try:
             await context.bot.pin_chat_message(
                 chat_id=ADMINS_CHAT_ID,
@@ -128,7 +121,6 @@ async def on_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.reply_text("Вопрос отправлен команде. Ответ придёт сюда.")
 
 
-# Регистрация обработчика
 def register_handlers(dispatcher):
     dispatcher.add_handler(
         MessageHandler(filters.ALL & filters.ChatType.PRIVATE, on_user_message)
