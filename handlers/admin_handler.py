@@ -4,7 +4,12 @@ from telegram import Update, Chat
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from config import ADMINS_CHAT_ID
-from database.db import get_user_by_qid, save_answer_message_id, save_answer_file_id, mark_answered
+from database.db import (
+    get_user_by_qid,
+    save_answer_message_id,
+    save_answer_file_id,
+    mark_answered,
+)
 from utils.logger import Logger
 from utils.user_formatter import format_user_for_log
 
@@ -31,7 +36,9 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qid = match.group(1)
     row = await get_user_by_qid(qid, include_answered=True)
     if not row:
-        await msg.reply_text("Ваш ответ не отправлен (возможно, на этот вопрос уже ответили).")
+        await msg.reply_text(
+            "Ваш ответ не отправлен (возможно, на этот вопрос уже ответили)."
+        )
         return
 
     user_chat_id, question_text, answer_message_id, question_file_id = row
@@ -54,7 +61,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     chat_id=user_chat_id,
                     photo=msg.photo[-1].file_id,
                     caption=user_text,
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
                 )
                 await save_answer_file_id(qid, msg.photo[-1].file_id)
             elif msg.document:
@@ -62,7 +69,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     chat_id=user_chat_id,
                     document=msg.document.file_id,
                     caption=user_text,
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
                 )
                 await save_answer_file_id(qid, msg.document.file_id)
             elif msg.video:
@@ -70,7 +77,7 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     chat_id=user_chat_id,
                     video=msg.video.file_id,
                     caption=user_text,
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
                 )
                 await save_answer_file_id(qid, msg.video.file_id)
             elif msg.audio:
@@ -78,14 +85,14 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     chat_id=user_chat_id,
                     audio=msg.audio.file_id,
                     caption=user_text,
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
                 )
                 await save_answer_file_id(qid, msg.audio.file_id)
             else:
                 sent_msg = await context.bot.send_message(
                     chat_id=user_chat_id,
                     text=user_text,
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
                 )
 
             await save_answer_message_id(qid, sent_msg.message_id)
@@ -94,23 +101,38 @@ async def on_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 await context.bot.unpin_chat_message(
                     chat_id=ADMINS_CHAT_ID,
-                    message_id=msg.reply_to_message.message_id
+                    message_id=msg.reply_to_message.message_id,
                 )
             except Exception as e:
                 logger.error(f"Failed to unpin question QID:{qid}: {e}")
 
             await msg.reply_text("✅ Ответ отправлен пользователю.")
             logger.info(f"Admin {admin_label} answered QID {qid}")
+
         else:
-            # Уже отвечено → редактируем только текст
-            await context.bot.edit_message_text(
-                chat_id=user_chat_id,
-                message_id=answer_message_id,
-                text=user_text,
-                parse_mode=ParseMode.HTML
-            )
-            logger.info(
-                f"Admin {admin_label} edited previous answer for QID {qid}")
+            # Уже отвечено → редактируем текст или подпись медиа
+            if question_file_id:
+                # Сообщение с медиа → редактируем caption
+                await context.bot.edit_message_caption(
+                    chat_id=user_chat_id,
+                    message_id=answer_message_id,
+                    caption=user_text,
+                    parse_mode=ParseMode.HTML,
+                )
+                logger.info(
+                    f"Admin {admin_label} edited previous media answer for QID {qid}"
+                )
+            else:
+                # Сообщение текстовое → редактируем text
+                await context.bot.edit_message_text(
+                    chat_id=user_chat_id,
+                    message_id=answer_message_id,
+                    text=user_text,
+                    parse_mode=ParseMode.HTML,
+                )
+                logger.info(
+                    f"Admin {admin_label} edited previous text answer for QID {qid}"
+                )
 
         await mark_answered(qid)
 
